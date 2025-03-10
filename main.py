@@ -1,6 +1,6 @@
 import cv2
 from pose_detection import PoseDetector
-from collections import deque
+import time
 
 def main():
     detector = PoseDetector()
@@ -12,8 +12,8 @@ def main():
 
     print("Starting ASL Translator. Press 'ESC' to exit.")
 
-    letter_buffer = deque(maxlen=10)  # Store last 10 detected letters
-    translated_text = ""
+    last_detected_letter = "..."  # Track last detected letter
+    last_time_detected = time.time()  # Track time of last detection
 
     while True:
         ret, frame = cap.read()
@@ -22,16 +22,15 @@ def main():
             break
 
         # Detect ASL letter
-        frame, asl_letter = detector.detect_hands(frame)
-        
-        if asl_letter != "...":  # Ignore "no detection"
-            letter_buffer.append(asl_letter)
+        frame, current_letter = detector.detect_hands(frame)
 
-        # Convert letters to words
-        translated_text = "".join(letter_buffer)
+        # Only update if a new letter is detected (different from last one)
+        if current_letter != last_detected_letter and current_letter != "...":
+            last_detected_letter = current_letter  # Update letter
+            last_time_detected = time.time()  # Reset detection timer
 
-        # Display ASL translation
-        cv2.putText(frame, f"ASL: {translated_text}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Display only the stable letter
+        cv2.putText(frame, f"ASL: {last_detected_letter}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Show the frame
         cv2.imshow("ASL Translator", frame)
