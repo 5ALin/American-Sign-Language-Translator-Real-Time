@@ -38,9 +38,11 @@ class PoseDetector:
         # If hand landmarks detected, classify the sign
         asl_letter = "..."
         if hand_landmarks_list:
-            features = np.array(hand_landmarks_list[0]).reshape(1, -1)
+            features = np.array(hand_landmarks_list[0]).reshape(1, -1)  # Reshape for model input
             features_scaled = self.scaler.transform(features)
-            features_reshaped = features_scaled.reshape(1, 1, features_scaled.shape[1])
+
+            # 🔹 **Fix the Reshaping Issue Here**
+            features_reshaped = features_scaled.reshape(1, 3, 21)  # (batch_size=1, time_steps=3, features=21)
 
             # Predict ASL letter
             prediction = self.model.predict(features_reshaped)
