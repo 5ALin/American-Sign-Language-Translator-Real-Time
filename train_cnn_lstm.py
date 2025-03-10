@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Conv1D, Flatten, Dropout
+from tensorflow.keras.layers import Dense, LSTM, Conv1D, Dropout
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import joblib
@@ -31,20 +31,19 @@ X_scaled = scaler.fit_transform(X)
 joblib.dump(scaler, "scaler.pkl")
 
 # Reshape X for CNN + LSTM (samples, time steps, features)
-X_reshaped = X_scaled.reshape(X_scaled.shape[0], 1, X_scaled.shape[1])
+X_reshaped = X_scaled.reshape(X_scaled.shape[0], 3, 21)  # (samples, 3 time steps, 21 features)
 
 # Split data into train & test sets
 X_train, X_test, y_train, y_test = train_test_split(X_reshaped, y_encoded, test_size=0.2, random_state=42)
 
-# Build CNN + LSTM model
+# Build CNN + LSTM model (FIXED)
 model = Sequential([
-    Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(1, X_reshaped.shape[2])),
-    Flatten(),
-    LSTM(128, return_sequences=True),
-    LSTM(64),
+    Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(3, 21)),  # 3 time steps, 21 features
+    LSTM(128, return_sequences=True),  # Keep sequence for next LSTM
+    LSTM(64),  # Last LSTM outputs final features
     Dropout(0.3),
     Dense(32, activation="relu"),
-    Dense(len(label_encoder.classes_), activation="softmax")  # Output layer for classification
+    Dense(len(label_encoder.classes_), activation="softmax")  # Output layer
 ])
 
 # Compile the model
