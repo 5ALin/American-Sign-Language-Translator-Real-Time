@@ -36,15 +36,14 @@ X_reshaped = X_scaled.reshape(X_scaled.shape[0], 3, 21)  # (samples, 3 time step
 # Split data into train & test sets
 X_train, X_test, y_train, y_test = train_test_split(X_reshaped, y_encoded, test_size=0.2, random_state=42)
 
-# Build CNN + LSTM model (FIXED)
 model = Sequential([
-    Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(3, 21)),  # 3 time steps, 21 features
-    LSTM(128, return_sequences=True),  # Keep sequence for next LSTM
-    LSTM(64),  # Last LSTM outputs final features
-    Dropout(0.3),
+    Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(3, 21)),  # Reduce filter size
+    LSTM(64, return_sequences=False),  # Remove unnecessary LSTM layers
+    Dropout(0.2),
     Dense(32, activation="relu"),
-    Dense(len(label_encoder.classes_), activation="softmax")  # Output layer
+    Dense(len(label_encoder.classes_), activation="softmax")
 ])
+
 
 # Compile the model
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
@@ -58,3 +57,19 @@ model.save("asl_cnn_lstm_model.h5")
 # Evaluate accuracy
 test_loss, test_acc = model.evaluate(X_test, y_test)
 print(f"Test Accuracy: {test_acc:.2f}")
+
+# Convert model to TensorFlow Lite (TFLite)
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+
+# **Fix LSTM Tensor Conversion Issues**
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+converter._experimental_lower_tensor_list_ops = False  # Avoid LSTM conversion errors
+converter.experimental_enable_resource_variables = True  # Fix resource variable issue
+
+tflite_model = converter.convert()
+
+# Save the TFLite model
+with open("asl_model.tflite", "wb") as f:
+    f.write(tflite_model)
+
+print("TFLite model saved successfully: asl_model.tflite")
